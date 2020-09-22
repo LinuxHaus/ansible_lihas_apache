@@ -1,0 +1,142 @@
+---
+- name: install apache2
+  apt:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - apache2
+  loop_control:
+    loop_var: item
+
+# setup apache2
+- name: apache base configuration, leak less information about server
+  copy:
+    dest: "{{ item }}"
+    src: "files/{{ item }}"
+  loop:
+    - "/etc/apache2/conf-available/servername.conf"
+    - "/etc/apache2/conf-available/serversignature.conf"
+    - "/etc/apache2/conf-available/servertokens.conf"
+    - "/etc/apache2/conf-available/traceenable-off.conf"
+    - "/etc/apache2/conf-available/no-x-powered-by.conf"
+  loop_control:
+    loop_var: item
+  notify: reload_apache2
+
+- stat:
+    path: /etc/apache2/conf-enabled/security.conf
+  register: statresult
+- name: "apache2: disable default security"
+  command: a2disconf security
+  notify: reload_apache2
+  when: statresult.stat.exists == true
+
+- stat:
+    path: /etc/apache2/sites-enabled/000-default.conf
+  register: statresult
+- name: "apache2: disable default site"
+  command: a2dissite 000-default
+  notify: reload_apache2
+  when: statresult.stat.exists == true
+
+# Weniger Angriffsfläche auf den Client (XSS u.ä.)
+- name: reduce client attack surface
+  copy:
+    dest: "{{ item }}"
+    src: "files/{{ item }}"
+  loop:
+    - "/etc/apache2/conf-available/x-frame-options-sameorigin.conf"
+    - "/etc/apache2/conf-available/x-content-type-options-nosniff.conf"
+    - "/etc/apache2/conf-available/referrer-policy.conf"
+  loop_control:
+    loop_var: item
+  notify: reload_apache2
+
+# SSL
+- name: SSL base configuration
+  copy:
+    dest: "{{ item }}"
+    src: "files/{{ item }}"
+  loop:
+    - "/etc/apache2/conf-available/cipherorder.conf"
+    - "/etc/apache2/conf-available/sslprotocol.conf"
+    - "/etc/apache2/conf-available/strict-transport-security.conf"
+    - "/etc/apache2/conf-available/httpsrewrite.conf"
+    - "/etc/apache2/conf-available/sslproxy.conf"
+  loop_control:
+    loop_var: item
+  notify: reload_apache2
+
+- name: apache enable conf
+  include: "50-apache-a2enconf.yml"
+  loop:
+    - servername
+    - serversignature
+    - servertokens
+    - traceenable-off
+    - no-x-powered-by
+    - x-frame-options-sameorigin
+    - x-content-type-options-nosniff
+    - referrer-policy
+    - cipherorder
+    - sslprotocol
+    - strict-transport-security
+    - httpsrewrite
+    - sslproxy
+  loop_control:
+    loop_var: item
+
+- name: apache enable modules
+  include: "50-apache-a2enmod.yml"
+  loop:
+    - ssl
+    - headers
+    - rewrite
+  loop_control:
+    loop_var: item
+
+- name: collect rproxy entries
+  set_fact:
+    rproxy_domains: "{{ LIHASVARS.roles.rproxy | default({}) }}"
+  when: LIHASVARS.roles.rproxy is defined
+- debug:
+    var: hostvars[inventory_hostname][item]
+  loop: "{{ configspaces }}"
+- name: collect rproxy entries
+  set_fact:
+    rproxy_domains: "{{ rproxy_domains | default({}) | combine( { 'rproxy_domains': hostvars[inventory_hostname][item]['config']['roles']['rproxy']['domains'] } ) }}"
+  loop: "{{ configspaces }}"
+  when: hostvars[inventory_hostname][item]['config']['roles']['rproxy']['domains'] is defined
+- debug:
+    var: rproxy_domains
+
+# Apache HTTPS Reverse Proxy, Zielserver ist HTTPS
+- name: "/etc/apache2/sites-available/reverse_proxy_https_letsencrypt.conf"
+  template:
+    dest: /etc/apache2/sites-available/reverse_proxy_https_letsencrypt.conf
+    src: files/etc/apache2/sites-available/reverse_proxy_https_letsencrypt.conf
+  notify: reload_apache2
+
+# - name: apache enable site
+#   include: "50-apache-a2ensite.yml"
+#   loop:
+#     - reverse_proxy_https_letsencrypt
+#   loop_control:
+#     loop_var: item
+# 
+# - name: apache enable modules
+#   include: "50-apache-a2enmod.yml"
+#   loop:
+#     - macro
+#     - proxy
+#     - proxy_http
+#     - proxy_wstunnel
+#     - remoteip
+#   loop_control:
+#     loop_var: item
+# 
+# - name: Dummy Zertifikate
+#   include: "50-apache-dummycert.yml"
+#   loop: "{{ LIHASVARS.roles.rproxy.domains | flatten(levels=1) }}"
+#   loop_control:
+#     loop_var: item

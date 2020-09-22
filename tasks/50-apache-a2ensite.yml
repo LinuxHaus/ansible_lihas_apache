@@ -1,0 +1,8 @@
+---
+- stat:
+    path: /etc/apache2/sites-enabled/{{ item }}.conf
+  register: statresult
+- name: "apache2: enable site {{ item }}"
+  command: a2ensite {{ item }}
+  notify: reload_apache2
+  when: statresult.stat.exists == false

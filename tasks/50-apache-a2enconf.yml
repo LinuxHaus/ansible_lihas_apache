@@ -1,0 +1,8 @@
+---
+- stat:
+    path: /etc/apache2/conf-enabled/{{ item }}.conf
+  register: statresult
+- name: "apache2: enable conf {{ item }}"
+  command: a2enconf {{ item }}
+  notify: reload_apache2
+  when: statresult.stat.exists == false

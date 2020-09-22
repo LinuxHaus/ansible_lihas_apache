@@ -1,0 +1,19 @@
+---
+- stat:
+    path: "/var/lib/dehydrated/certs/{{ item }}/fullchain.pem"
+  register: statresult
+- file:
+    path: "/var/lib/dehydrated/certs/{{ item }}"
+    state: directory
+- file:
+    path: "/var/lib/dehydrated/certs/{{ item }}/fullchain.pem"
+    src: /etc/ssl/certs/ssl-cert-snakeoil.pem
+    state: link
+  notify: restart_apache2
+  when: statresult.stat.exists == false
+- file:
+    path: "/var/lib/dehydrated/certs/{{ item }}/privkey.pem"
+    src: /etc/ssl/private/ssl-cert-snakeoil.key
+    state: link
+  notify: restart_apache2
+  when: statresult.stat.exists == false

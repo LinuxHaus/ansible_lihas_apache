@@ -1,0 +1,8 @@
+---
+- stat:
+    path: /etc/apache2/mods-enabled/{{ item }}.load
+  register: statresult
+- name: "apache2: enable module {{ item }}"
+  command: a2enmod {{ item }}
+  notify: restart_apache2
+  when: statresult.stat.exists == false
