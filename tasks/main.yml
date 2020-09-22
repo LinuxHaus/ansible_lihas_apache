@@ -102,9 +102,12 @@
 - debug:
     var: hostvars[inventory_hostname][item]
   loop: "{{ configspaces }}"
+- debug:
+    var: hostvars[inventory_hostname]['gw-fwse-rz']['config']
 - name: collect rproxy entries
   set_fact:
-    rproxy_domains: "{{ rproxy_domains | default({}) | combine( { 'rproxy_domains': hostvars[inventory_hostname][item]['config']['roles']['rproxy']['domains'] } ) }}"
+    rproxy_domains: "{{ rproxy_domains | default({}) | combine( { 'domains': hostvars[inventory_hostname][item]['config']['roles']['rproxy']['domains'] } ) }}"
+    cacheable: no
   loop: "{{ configspaces }}"
   when: hostvars[inventory_hostname][item]['config']['roles']['rproxy']['domains'] is defined
 - debug:
@@ -117,26 +120,28 @@
     src: files/etc/apache2/sites-available/reverse_proxy_https_letsencrypt.conf
   notify: reload_apache2
 
-# - name: apache enable site
-#   include: "50-apache-a2ensite.yml"
-#   loop:
-#     - reverse_proxy_https_letsencrypt
-#   loop_control:
-#     loop_var: item
-# 
-# - name: apache enable modules
-#   include: "50-apache-a2enmod.yml"
-#   loop:
-#     - macro
-#     - proxy
-#     - proxy_http
-#     - proxy_wstunnel
-#     - remoteip
-#   loop_control:
-#     loop_var: item
-# 
-# - name: Dummy Zertifikate
-#   include: "50-apache-dummycert.yml"
-#   loop: "{{ LIHASVARS.roles.rproxy.domains | flatten(levels=1) }}"
-#   loop_control:
-#     loop_var: item
+- name: apache enable site
+  include: "50-apache-a2ensite.yml"
+  loop:
+    - reverse_proxy_https_letsencrypt
+  loop_control:
+    loop_var: item
+
+- name: apache enable modules
+  include: "50-apache-a2enmod.yml"
+  loop:
+    - macro
+    - proxy
+    - proxy_http
+    - proxy_wstunnel
+    - remoteip
+  loop_control:
+    loop_var: item
+
+- debug:
+    var: rproxy_domains
+- name: Dummy Zertifikate
+  include: "50-apache-dummycert.yml"
+  loop: "{{ rproxy_domains.domains | flatten(levels=1) }}"
+  loop_control:
+    loop_var: item

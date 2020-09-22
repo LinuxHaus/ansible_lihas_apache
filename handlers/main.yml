@@ -1,15 +1,9 @@
 ---
 - name: reload_apache2
-  block:
-    - service:
-        name: apache2
-        state: reloaded
-  rescue:
-    - service:
-        name: apache2
-        state: restarted
+  service:
+    name: apache2
+    state: reloaded
 - name: restart_apache2
   service:
     name: apache2
     state: restarted
-...
