@@ -1,4 +1,8 @@
 ---
+- name: include variables
+  include_role:
+    name: lihas-variables
+  when: configspaces is not defined
 - name: install apache2
   apt:
     name: "{{ item }}"
@@ -145,14 +149,10 @@
   loop: "{{ rproxy_domains.domains | flatten(levels=1) }}"
   loop_control:
     loop_var: item
-- name: debug /etc/hosts rproxy entries
-  debug:
-    msg: "{{ rproxy_domains.domains[item]['target_ip'] }} {{ item }}"
-  loop: "{{ rproxy_domains.domains | flatten(levels=1) }}"
 - name: /etc/hosts rproxy entries
   blockinfile:
+    marker: "# {mark} ANSIBLE MANAGED BLOCK role lihas-apache {{ item }}"
     path: /etc/hosts
     block: |
       {{ rproxy_domains.domains[item]['target_ip'] }} {{ item }}
-    marker: "# ANSIBLE MANAGED BLOCK"
   loop: "{{ rproxy_domains.domains | flatten(levels=1) }}"
