@@ -1,0 +1,7 @@
+---
+# Use from other roles to only enable some modules
+- name: apache enable modules
+  include: "50-apache-a2enmod.yml"
+  loop: apache_modules_enabled
+  loop_control:
+    loop_var: item

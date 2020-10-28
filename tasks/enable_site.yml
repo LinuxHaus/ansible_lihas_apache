@@ -1,0 +1,11 @@
+---
+- name: apache enable site
+  include: "50-apache-a2ensite.yml"
+  loop: apache_sites_enabled
+  loop_control:
+    loop_var: item
+- name: Dummy Zertifikate
+  include: "50-apache-dummycert.yml"
+  loop: "{{ apache_sites_enabled }}"
+  loop_control:
+    loop_var: item
