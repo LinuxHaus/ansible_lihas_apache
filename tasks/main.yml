@@ -1,7 +1,7 @@
 ---
 - name: include variables
   include_role:
-    name: lihas-variables
+    name: lihas_variables
   when: configspaces is not defined
 - name: install apache2
   apt:
