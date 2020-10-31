@@ -1,4 +1,4 @@
-# ansible-lihas-apache
+# ansible_lihas_apache
 Installs Apache and does basic configuration
 
 # additional configuration from other roles
@@ -7,10 +7,10 @@ This role can be called to only enable a few modules from other modules. To do t
 ```
 - name: enable apache modules
   include_role:
-    name: lihas-apache
+    name: lihas_apache
     tasks_from: enable_modules.yml
   include_role:
-    name: lihas-apache
+    name: lihas_apache
   vars:
     apache_modules_enabled: []
 ```
@@ -19,10 +19,10 @@ This role can be called to only enable a few config files from other modules. To
 ```
 - name: enable apache conf
   include_role:
-    name: lihas-apache
+    name: lihas_apache
     tasks_from: enable_conf.yml
   include_role:
-    name: lihas-apache
+    name: lihas_apache
   vars:
     apache_conf_enabled: []
 ```
@@ -31,10 +31,10 @@ This role can be called to only enable a few sites from other modules. To do thi
 ```
 - name: enable apache site
   include_role:
-    name: lihas-apache
+    name: lihas_apache
     tasks_from: enable_site.yml
   include_role:
-    name: lihas-apache
+    name: lihas_apache
   vars:
     apache_site_enabled: []
 ```
