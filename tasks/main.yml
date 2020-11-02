@@ -106,8 +106,6 @@
 - debug:
     var: hostvars[inventory_hostname][item]
   loop: "{{ configspaces }}"
-- debug:
-    var: hostvars[inventory_hostname]['gw-fwse-rz']['config']
 - name: collect rproxy entries
   set_fact:
     rproxy_domains: "{{ rproxy_domains | default({}) | combine( { 'domains': hostvars[inventory_hostname][item]['config']['roles']['rproxy']['domains'] } ) }}"
@@ -121,15 +119,34 @@
     dest: /etc/apache2/sites-available/reverse_proxy_https_letsencrypt.conf
     src: files/etc/apache2/sites-available/reverse_proxy_https_letsencrypt.conf
   notify: reload_apache2
-  when: rproxy_domains is defined
+
+- name: collect external_redirect entries
+  set_fact:
+    external_redirect_domains: "{{ LIHASVARS.roles.external_redirect | default({}) }}"
+  when: LIHASVARS.roles.external_redirect is defined
+- debug:
+    var: hostvars[inventory_hostname][item]
+  loop: "{{ configspaces }}"
+- name: collect external_redirect entries
+  set_fact:
+    external_redirect_domains: "{{ external_redirect_domains | default({}) | combine( { 'domains': hostvars[inventory_hostname][item]['config']['roles']['external_redirect']['domains'] } ) }}"
+    cacheable: no
+  loop: "{{ configspaces }}"
+  when: hostvars[inventory_hostname][item]['config']['roles']['external_redirect']['domains'] is defined
+# Apache HTTPS external redirects, domain->domain
+- name: "/etc/apache2/sites-available/reverse_proxy_https_letsencrypt.conf"
+  template:
+    dest: /etc/apache2/sites-available/external_redirect.conf
+    src: files/etc/apache2/sites-available/external_redirect.conf
+  notify: reload_apache2
 
 - name: apache enable site
   include: "50-apache-a2ensite.yml"
   loop:
     - reverse_proxy_https_letsencrypt
+    - external_redirect
   loop_control:
     loop_var: item
-  when: rproxy_domains is defined
 
 - name: apache enable modules
   include: "50-apache-a2enmod.yml"

@@ -38,4 +38,3 @@ This role can be called to only enable a few sites from other modules. To do thi
   vars:
     apache_site_enabled: []
 ```
-
