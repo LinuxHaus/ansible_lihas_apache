@@ -170,6 +170,6 @@
     marker: "# {mark} ANSIBLE MANAGED BLOCK role lihas-apache {{ item }}"
     path: /etc/hosts
     block: |
-      {{ rproxy_domains.domains[item]['target_ip'] }} {{ item }}
+      {{ rproxy_domains.domains[item]['target_ip'] | default('#') }} {{ item }}
   loop: "{{ rproxy_domains.domains | flatten(levels=1) }}"
   when: rproxy_domains is defined
