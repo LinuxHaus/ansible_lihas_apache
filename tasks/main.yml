@@ -155,9 +155,6 @@
   set_fact:
     external_redirect_domains: "{{ LIHASVARS.roles.external_redirect | default({}) }}"
   when: LIHASVARS.roles.external_redirect is defined
-- debug:
-    var: hostvars[inventory_hostname][item]
-  loop: "{{ configspaces }}"
 - name: collect external_redirect entries
   set_fact:
     external_redirect_domains: "{{ external_redirect_domains | default({}) | combine( { 'domains': hostvars[inventory_hostname][item]['config']['roles']['external_redirect']['domains'] } ) }}"
@@ -171,11 +168,29 @@
     src: files/etc/apache2/sites-available/external_redirect.conf
   notify: reload_apache2
 
+# Apache HTTPS local domains
+- name: collect local_pages entries
+  set_fact:
+    local_pages: "{{ LIHASVARS.roles.local_pages | default({}) }}"
+  when: LIHASVARS.roles.local_pages is defined
+- name: collect local_pages entries
+  set_fact:
+    local_pages: "{{ local_pages | default({}) | combine( { 'domains': hostvars[inventory_hostname][item]['config']['roles']['local_pages']['domains'] } ) }}"
+    cacheable: no
+  loop: "{{ configspaces }}"
+  when: hostvars[inventory_hostname][item]['config']['roles']['local_pages']['domains'] is defined
+- name: "/etc/apache2/sites-available/local_pages.conf"
+  template:
+    dest: /etc/apache2/sites-available/local_pages.conf
+    src: files/etc/apache2/sites-available/local_pages.conf
+  notify: reload_apache2
+
 - name: apache enable site
   include: "50-apache-a2ensite.yml"
   loop:
     - reverse_proxy_https_letsencrypt
     - external_redirect
+    - local_pages
   loop_control:
     loop_var: item
 
@@ -190,12 +205,24 @@
   loop_control:
     loop_var: item
 
-- name: Dummy Zertifikate
+- name: Dummy Zertifikate rproxy_domainnames
   include: "50-apache-dummycert.yml"
   loop: "{{ rproxy_domainnames }}"
   loop_control:
     loop_var: item
   when: rproxy_domainnames is defined
+- name: Dummy Zertifikate external_redirect_domains
+  include: "50-apache-dummycert.yml"
+  loop: "{{ external_redirect_domains.domains | flatten(levels=1) }}"
+  loop_control:
+    loop_var: item
+  when: external_redirect_domains.domains is defined
+- name: Dummy Zertifikate local_pages
+  include: "50-apache-dummycert.yml"
+  loop: "{{ local_pages.domains | flatten(levels=1) }}"
+  loop_control:
+    loop_var: item
+  when: local_pages is defined
 - name: /etc/hosts rproxy entries
   blockinfile:
     marker: "# {mark} ANSIBLE MANAGED BLOCK role lihas-apache {{ item }}"
