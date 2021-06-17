@@ -65,7 +65,6 @@
     - "/etc/apache2/conf-available/cipherorder.conf"
     - "/etc/apache2/conf-available/sslprotocol.conf"
     - "/etc/apache2/conf-available/strict-transport-security.conf"
-    - "/etc/apache2/conf-available/httpsrewrite.conf"
     - "/etc/apache2/conf-available/sslproxy.conf"
   loop_control:
     loop_var: item
