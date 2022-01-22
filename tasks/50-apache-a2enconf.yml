@@ -2,7 +2,10 @@
 - stat:
     path: /etc/apache2/conf-enabled/{{ item }}.conf
   register: statresult
+- stat:
+    path: /etc/apache2/conf-available/{{ item }}.conf
+  register: statresultavail
 - name: "apache2: enable conf {{ item }}"
   command: a2enconf {{ item }}
   notify: reload_apache2
-  when: statresult.stat.exists == false
+  when: '(statresult.stat.exists == false ) and ( statresultavail.stat.exists == true )'
