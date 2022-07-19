@@ -19,7 +19,13 @@ ansible-playbook -i localhost, apache.yml
 %.config.roles.rproxy.domains.DOMAINNAME
   target_ip: IP of real host, will de added to /etc/hosts as IP DOMAINNAME
   method: http or https, default https
-  port: target port for http, default 80, currently only fpr method http
+  port: target port for http, default 80, currently only for method http
+%.config.apache.conf.enabled: []
+%.config.apache.conf.disabled: []
+%.config.apache.module.enabled: []
+%.config.apache.module.disabled: []
+LIHASVARS.apache.features.httpsrewrite: boolean
+  default: true
 ```
 
 ## additional configuration from other roles

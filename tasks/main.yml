@@ -70,6 +70,31 @@
     loop_var: item
   notify: reload_apache2
 
+- name: collect enabled modules
+  set_fact:
+    apache_module_enabled: "{{ apache_module_enabled | default([]) + hostvars[inventory_hostname][item]['config']['apache']['module']['enabled'] }}"
+    cacheable: no
+  loop: "{{ configspaces }}"
+  when: hostvars[inventory_hostname][item]['config']['apache']['module']['enabled'] is defined
+- name: collect disabled module
+  set_fact:
+    apache_module_disabled: "{{ apache_module_disabled | default([]) + hostvars[inventory_hostname][item]['config']['apache']['module']['disabled'] }}"
+    cacheable: no
+  loop: "{{ configspaces }}"
+  when: hostvars[inventory_hostname][item]['config']['apache']['module']['disabled'] is defined
+- name: collect enabled conf
+  set_fact:
+    apache_conf_enabled: "{{ apache_conf_enabled | default([]) + hostvars[inventory_hostname][item]['config']['apache']['conf']['enabled'] }}"
+    cacheable: no
+  loop: "{{ configspaces }}"
+  when: hostvars[inventory_hostname][item]['config']['apache']['conf']['enabled'] is defined
+- name: collect disabled conf
+  set_fact:
+    apache_conf_disabled: "{{ apache_conf_disabled | default([]) + hostvars[inventory_hostname][item]['config']['apache']['conf']['disabled'] }}"
+    cacheable: no
+  loop: "{{ configspaces }}"
+  when: hostvars[inventory_hostname][item]['config']['apache']['conf']['disabled'] is defined
+
 - name: apache enable conf
   include: "50-apache-a2enconf.yml"
   loop:
@@ -84,10 +109,18 @@
     - cipherorder
     - sslprotocol
     - strict-transport-security
-    - httpsrewrite
     - sslproxy
   loop_control:
     loop_var: item
+  async: 60
+  poll: 0
+- name: apache global httpsrewrite
+  include: "50-apache-a2enconf.yml"
+  loop:
+    - httpsrewrite
+  loop_control:
+    loop_var: item
+  when: LIHASVARS.apache.features.httpsrewrite | default(true)
 
 - name: apache enable modules
   include: "50-apache-a2enmod.yml"
@@ -97,6 +130,8 @@
     - rewrite
   loop_control:
     loop_var: item
+  async: 60
+  poll: 0
 
 - name: collect rproxy entries
   set_fact:
@@ -203,6 +238,8 @@
     - remoteip
   loop_control:
     loop_var: item
+  async: 60
+  poll: 0
 
 - name: Dummy Zertifikate rproxy_domainnames
   include: "50-apache-dummycert.yml"
@@ -210,18 +247,24 @@
   loop_control:
     loop_var: item
   when: rproxy_domainnames is defined
+  async: 60
+  poll: 0
 - name: Dummy Zertifikate external_redirect_domains
   include: "50-apache-dummycert.yml"
   loop: "{{ external_redirect_domains.domains | flatten(levels=1) }}"
   loop_control:
     loop_var: item
   when: external_redirect_domains.domains is defined
+  async: 60
+  poll: 0
 - name: Dummy Zertifikate local_pages
   include: "50-apache-dummycert.yml"
   loop: "{{ local_pages.domains | flatten(levels=1) }}"
   loop_control:
     loop_var: item
   when: local_pages is defined
+  async: 60
+  poll: 0
 - name: /etc/hosts rproxy entries
   blockinfile:
     marker: "# {mark} ANSIBLE MANAGED BLOCK role lihas-apache {{ item }}"
@@ -230,3 +273,37 @@
       {{ rproxy_domains.domains[item]['target_ip'] | default('#') }} {{ item }}
   loop: "{{ rproxy_domains.domains | flatten(levels=1) }}"
   when: rproxy_domains is defined
+
+- name: apache enable additional modules
+  include: "50-apache-a2enmod.yml"
+  with_list: "{{ apache_module_enabled }}"
+  loop_control:
+    loop_var: item
+  when: apache_module_enabled is defined
+  async: 60
+  poll: 0
+- name: apache disable unwanted modules
+  include: "50-apache-a2dismod.yml"
+  with_list: "{{ apache_module_disabled }}"
+  loop_control:
+    loop_var: item
+  when: apache_module_disabled is defined
+  async: 60
+  poll: 0
+- name: apache enable additional config
+  include: "50-apache-a2enconf.yml"
+  with_list: "{{ apache_conf_enabled }}"
+  loop_control:
+    loop_var: item
+  when: apache_conf_enabled is defined
+  async: 60
+  poll: 0
+- name: apache disable unwanted config
+  include: "50-apache-a2disconf.yml"
+  with_list: "{{ apache_conf_disabled }}"
+  loop_control:
+    loop_var: item
+  when: apache_conf_disabled is defined
+  async: 60
+  poll: 0
+...
