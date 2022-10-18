@@ -1,11 +1,13 @@
 ---
 - name: apache enable site
-  include: "50-apache-a2ensite.yml"
+  include_tasks: "50-apache-a2ensite.yml"
   loop: apache_sites_enabled
   loop_control:
     loop_var: item
+  become: "{{lihas_become | default('no')}}"
 - name: Dummy Zertifikate
-  include: "50-apache-dummycert.yml"
+  include_tasks: "50-apache-dummycert.yml"
   loop: "{{ apache_sites_enabled }}"
   loop_control:
     loop_var: item
+  become: "{{lihas_become | default('no')}}"

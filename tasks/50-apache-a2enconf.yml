@@ -2,10 +2,13 @@
 - stat:
     path: /etc/apache2/conf-enabled/{{ item }}.conf
   register: statresult
+  become: "{{lihas_become | default('no')}}"
 - stat:
     path: /etc/apache2/conf-available/{{ item }}.conf
   register: statresultavail
+  become: "{{lihas_become | default('no')}}"
 - name: "apache2: enable conf {{ item }}"
   command: a2enconf {{ item }}
   notify: reload_apache2
   when: '(statresult.stat.exists == false ) and ( statresultavail.stat.exists == true )'
+  become: "{{lihas_become | default('no')}}"

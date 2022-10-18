@@ -2,18 +2,22 @@
 - stat:
     path: "/var/lib/dehydrated/certs/{{ item }}/fullchain.pem"
   register: statresult
+  become: "{{lihas_become | default('no')}}"
 - file:
     path: "/var/lib/dehydrated/certs/{{ item }}"
     state: directory
+  become: "{{lihas_become | default('no')}}"
 - file:
     path: "/var/lib/dehydrated/certs/{{ item }}/fullchain.pem"
     src: /etc/ssl/certs/ssl-cert-snakeoil.pem
     state: link
   notify: restart_apache2
   when: statresult.stat.exists == false
+  become: "{{lihas_become | default('no')}}"
 - file:
     path: "/var/lib/dehydrated/certs/{{ item }}/privkey.pem"
     src: /etc/ssl/private/ssl-cert-snakeoil.key
     state: link
   notify: restart_apache2
   when: statresult.stat.exists == false
+  become: "{{lihas_become | default('no')}}"

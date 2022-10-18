@@ -3,6 +3,10 @@
   include_role:
     name: lihas_variables
   when: configspaces is not defined
+- name: check if become is necessary
+  set_fact:
+    lihas_become: "yes"
+  when: ansible_effective_user_id != "root"
 - name: install apache2
   apt:
     name: "{{ item }}"
@@ -11,6 +15,7 @@
     - apache2
   loop_control:
     loop_var: item
+  become: "{{lihas_become | default('no')}}"
 
 # setup apache2
 - name: apache base configuration, leak less information about server
@@ -26,22 +31,27 @@
   loop_control:
     loop_var: item
   notify: reload_apache2
+  become: "{{lihas_become | default('no')}}"
 
 - stat:
     path: /etc/apache2/conf-enabled/security.conf
   register: statresult
+  become: "{{lihas_become | default('no')}}"
 - name: "apache2: disable default security"
   command: a2disconf security
   notify: reload_apache2
   when: statresult.stat.exists == true
+  become: "{{lihas_become | default('no')}}"
 
 - stat:
     path: /etc/apache2/sites-enabled/000-default.conf
   register: statresult
+  become: "{{lihas_become | default('no')}}"
 - name: "apache2: disable default site"
   command: a2dissite 000-default
   notify: reload_apache2
   when: statresult.stat.exists == true
+  become: "{{lihas_become | default('no')}}"
 
 # Weniger Angriffsfläche auf den Client (XSS u.ä.)
 - name: reduce client attack surface
@@ -55,6 +65,7 @@
   loop_control:
     loop_var: item
   notify: reload_apache2
+  become: "{{lihas_become | default('no')}}"
 
 # SSL
 - name: SSL base configuration
@@ -69,6 +80,7 @@
   loop_control:
     loop_var: item
   notify: reload_apache2
+  become: "{{lihas_become | default('no')}}"
 
 - name: collect enabled modules
   set_fact:
@@ -76,27 +88,31 @@
     cacheable: no
   loop: "{{ configspaces }}"
   when: hostvars[inventory_hostname][item]['config']['apache']['module']['enabled'] is defined
+  become: "{{lihas_become | default('no')}}"
 - name: collect disabled module
   set_fact:
     apache_module_disabled: "{{ apache_module_disabled | default([]) + hostvars[inventory_hostname][item]['config']['apache']['module']['disabled'] }}"
     cacheable: no
   loop: "{{ configspaces }}"
   when: hostvars[inventory_hostname][item]['config']['apache']['module']['disabled'] is defined
+  become: "{{lihas_become | default('no')}}"
 - name: collect enabled conf
   set_fact:
     apache_conf_enabled: "{{ apache_conf_enabled | default([]) + hostvars[inventory_hostname][item]['config']['apache']['conf']['enabled'] }}"
     cacheable: no
   loop: "{{ configspaces }}"
   when: hostvars[inventory_hostname][item]['config']['apache']['conf']['enabled'] is defined
+  become: "{{lihas_become | default('no')}}"
 - name: collect disabled conf
   set_fact:
     apache_conf_disabled: "{{ apache_conf_disabled | default([]) + hostvars[inventory_hostname][item]['config']['apache']['conf']['disabled'] }}"
     cacheable: no
   loop: "{{ configspaces }}"
   when: hostvars[inventory_hostname][item]['config']['apache']['conf']['disabled'] is defined
+  become: "{{lihas_become | default('no')}}"
 
 - name: apache enable conf
-  include: "50-apache-a2enconf.yml"
+  include_tasks: "50-apache-a2enconf.yml"
   loop:
     - servername
     - serversignature
@@ -112,10 +128,8 @@
     - sslproxy
   loop_control:
     loop_var: item
-  async: 60
-  poll: 0
 - name: apache global httpsrewrite
-  include: "50-apache-a2enconf.yml"
+  include_tasks: "50-apache-a2enconf.yml"
   loop:
     - httpsrewrite
   loop_control:
@@ -123,20 +137,19 @@
   when: LIHASVARS.apache.features.httpsrewrite | default(true)
 
 - name: apache enable modules
-  include: "50-apache-a2enmod.yml"
+  include_tasks: "50-apache-a2enmod.yml"
   loop:
     - ssl
     - headers
     - rewrite
   loop_control:
     loop_var: item
-  async: 60
-  poll: 0
 
 - name: collect rproxy entries
   set_fact:
     rproxy_domains: "{{ LIHASVARS.roles.rproxy | default({}) }}"
   when: LIHASVARS.roles.rproxy is defined
+  become: "{{lihas_become | default('no')}}"
 - debug:
     var: hostvars[inventory_hostname][item]
   loop: "{{ configspaces }}"
@@ -152,12 +165,14 @@
     rproxy_domainnames: "{{ LIHASVARS.roles.rproxy.domains | default({}) | flatten(levels=1) }}"
   loop: "{{ configspaces }}"
   when: LIHASVARS.roles.rproxy is defined and LIHASVARS.roles.rproxy.domains is defined
+  become: "{{lihas_become | default('no')}}"
 - name: "collect rproxy entries {{ configspaces }}"
   set_fact:
     rproxy_domainnames: "{{ rproxy_domainnames | default([]) + hostvars[inventory_hostname][item]['config']['roles']['rproxy']['domains'] | default({}) | flatten(levels=1) }}"
     cacheable: no
   loop: "{{ configspaces }}"
   when: hostvars[inventory_hostname][item]['config']['roles']['rproxy']['domains'] is defined
+  become: "{{lihas_become | default('no')}}"
 - name: DEBUG RPROXY after %.roles.rproxy.domains
   debug:
     var: rproxy_domainnames
@@ -184,6 +199,7 @@
     dest: /etc/apache2/sites-available/reverse_proxy_https_letsencrypt.conf
     src: files/etc/apache2/sites-available/reverse_proxy_https_letsencrypt.conf
   notify: reload_apache2
+  become: "{{lihas_become | default('no')}}"
 
 - name: collect external_redirect entries
   set_fact:
@@ -201,6 +217,7 @@
     dest: /etc/apache2/sites-available/external_redirect.conf
     src: files/etc/apache2/sites-available/external_redirect.conf
   notify: reload_apache2
+  become: "{{lihas_become | default('no')}}"
 
 # Apache HTTPS local domains
 - name: collect local_pages entries
@@ -218,9 +235,10 @@
     dest: /etc/apache2/sites-available/local_pages.conf
     src: files/etc/apache2/sites-available/local_pages.conf
   notify: reload_apache2
+  become: "{{lihas_become | default('no')}}"
 
 - name: apache enable site
-  include: "50-apache-a2ensite.yml"
+  include_tasks: "50-apache-a2ensite.yml"
   loop:
     - reverse_proxy_https_letsencrypt
     - external_redirect
@@ -229,7 +247,7 @@
     loop_var: item
 
 - name: apache enable modules
-  include: "50-apache-a2enmod.yml"
+  include_tasks: "50-apache-a2enmod.yml"
   loop:
     - macro
     - proxy
@@ -238,33 +256,25 @@
     - remoteip
   loop_control:
     loop_var: item
-  async: 60
-  poll: 0
 
 - name: Dummy Zertifikate rproxy_domainnames
-  include: "50-apache-dummycert.yml"
+  include_tasks: "50-apache-dummycert.yml"
   loop: "{{ rproxy_domainnames }}"
   loop_control:
     loop_var: item
   when: rproxy_domainnames is defined
-  async: 60
-  poll: 0
 - name: Dummy Zertifikate external_redirect_domains
-  include: "50-apache-dummycert.yml"
+  include_tasks: "50-apache-dummycert.yml"
   loop: "{{ external_redirect_domains.domains | flatten(levels=1) }}"
   loop_control:
     loop_var: item
   when: external_redirect_domains.domains is defined
-  async: 60
-  poll: 0
 - name: Dummy Zertifikate local_pages
-  include: "50-apache-dummycert.yml"
+  include_tasks: "50-apache-dummycert.yml"
   loop: "{{ local_pages.domains | flatten(levels=1) }}"
   loop_control:
     loop_var: item
   when: local_pages is defined
-  async: 60
-  poll: 0
 - name: /etc/hosts rproxy entries
   blockinfile:
     marker: "# {mark} ANSIBLE MANAGED BLOCK role lihas-apache {{ item }}"
@@ -273,37 +283,30 @@
       {{ rproxy_domains.domains[item]['target_ip'] | default('#') }} {{ item }}
   loop: "{{ rproxy_domains.domains | flatten(levels=1) }}"
   when: rproxy_domains is defined
+  become: "{{lihas_become | default('no')}}"
 
 - name: apache enable additional modules
-  include: "50-apache-a2enmod.yml"
+  include_tasks: "50-apache-a2enmod.yml"
   with_list: "{{ apache_module_enabled }}"
   loop_control:
     loop_var: item
   when: apache_module_enabled is defined
-  async: 60
-  poll: 0
 - name: apache disable unwanted modules
-  include: "50-apache-a2dismod.yml"
+  include_tasks: "50-apache-a2dismod.yml"
   with_list: "{{ apache_module_disabled }}"
   loop_control:
     loop_var: item
   when: apache_module_disabled is defined
-  async: 60
-  poll: 0
 - name: apache enable additional config
-  include: "50-apache-a2enconf.yml"
+  include_tasks: "50-apache-a2enconf.yml"
   with_list: "{{ apache_conf_enabled }}"
   loop_control:
     loop_var: item
   when: apache_conf_enabled is defined
-  async: 60
-  poll: 0
 - name: apache disable unwanted config
-  include: "50-apache-a2disconf.yml"
+  include_tasks: "50-apache-a2disconf.yml"
   with_list: "{{ apache_conf_disabled }}"
   loop_control:
     loop_var: item
   when: apache_conf_disabled is defined
-  async: 60
-  poll: 0
 ...
