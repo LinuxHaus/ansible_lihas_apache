@@ -1,23 +1,28 @@
 ---
-- stat:
+- name: check if {{ item }}/fullchain.pem exists
+  ansible.builtin.stat:
     path: "/var/lib/dehydrated/certs/{{ item }}/fullchain.pem"
   register: statresult
-  become: "{{lihas_become | default('no')}}"
-- file:
+  become: "{{ lihas_become | default(no) }}"
+- name: "create /var/lib/dehydrated/certs/{{ item }}"
+  ansible.builtin.file:
     path: "/var/lib/dehydrated/certs/{{ item }}"
     state: directory
-  become: "{{lihas_become | default('no')}}"
-- file:
+    mode: '0755'
+  become: "{{ lihas_become | default(no) }}"
+- name: "create /var/lib/dehydrated/certs/{{ item }}/fullchain.pem"
+  ansible.builtin.file:
     path: "/var/lib/dehydrated/certs/{{ item }}/fullchain.pem"
     src: /etc/ssl/certs/ssl-cert-snakeoil.pem
     state: link
   notify: restart_apache2
-  when: statresult.stat.exists == false
-  become: "{{lihas_become | default('no')}}"
-- file:
+  when: not statresult.stat.exists
+  become: "{{ lihas_become | default(no) }}"
+- name: "create /var/lib/dehydrated/certs/{{ item }}/privkey.pem"
+  ansible.builtin.file:
     path: "/var/lib/dehydrated/certs/{{ item }}/privkey.pem"
     src: /etc/ssl/private/ssl-cert-snakeoil.key
     state: link
   notify: restart_apache2
-  when: statresult.stat.exists == false
-  become: "{{lihas_become | default('no')}}"
+  when: not statresult.stat.exists
+  become: "{{ lihas_become | default(no) }}"

@@ -1,10 +1,11 @@
 ---
-- stat:
+- name: check if {{ item }} is enabled
+  ansible.builtin.stat:
     path: /etc/apache2/sites-enabled/{{ item }}.conf
   register: statresult
-  become: "{{lihas_become | default('no')}}"
+  become: "{{ lihas_become | default(no) }}"
 - name: "apache2: enable site {{ item }}"
-  command: a2ensite {{ item }}
+  ansible.builtin.command: a2ensite {{ item }}
   notify: reload_apache2
-  when: statresult.stat.exists == false
-  become: "{{lihas_become | default('no')}}"
+  when: not statresult.stat.exists
+  become: "{{ lihas_become | default(no) }}"

@@ -1,14 +1,16 @@
 ---
-- stat:
+- name: check if {{ item }} is enabled
+  ansible.builtin.stat:
     path: /etc/apache2/conf-enabled/{{ item }}.conf
   register: statresult
-  become: "{{lihas_become | default('no')}}"
-- stat:
+  become: "{{ lihas_become | default(no) }}"
+- name: check if {{ item }} is available
+  ansible.builtin.stat:
     path: /etc/apache2/conf-available/{{ item }}.conf
   register: statresultavail
-  become: "{{lihas_become | default('no')}}"
+  become: "{{ lihas_become | default(no) }}"
 - name: "apache2: enable conf {{ item }}"
-  command: a2enconf {{ item }}
+  ansible.builtin.command: a2enconf {{ item }}
   notify: reload_apache2
-  when: '(statresult.stat.exists == false ) and ( statresultavail.stat.exists == true )'
-  become: "{{lihas_become | default('no')}}"
+  when: '(not statresult.stat.exists ) and ( statresultavail.stat.exists )'
+  become: "{{ lihas_become | default(no) }}"

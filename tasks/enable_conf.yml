@@ -1,18 +1,19 @@
 ---
 - name: deploy additional apache configuration
-  copy:
+  ansible.builtin.copy:
     dest: "/etc/apache2/conf-available/{{ item }}.conf"
     src: "files/etc/apache2/conf-available/{{ item }}.conf"
+    mode: '0644'
   loop: apache_conf_enabled
   loop_control:
     loop_var: item
   notify: reload_apache2
-  become: "{{lihas_become | default('no')}}"
+  become: "{{ lihas_become | default(no) }}"
 
 - name: apache enable conf
-  include_tasks: "50-apache-a2enconf.yml"
+  ansible.builtin.include_tasks: "50-apache-a2enconf.yml"
   loop: apache_conf_enabled
   loop_control:
     loop_var: item
-  become: "{{lihas_become | default('no')}}"
-
+  become: "{{ lihas_become | default(no) }}"
+...

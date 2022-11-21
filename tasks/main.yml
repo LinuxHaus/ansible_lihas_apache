@@ -1,27 +1,28 @@
 ---
 - name: include variables
-  include_role:
+  ansible.builtin.include_role:
     name: lihas_variables
   when: configspaces is not defined
 - name: check if become is necessary
-  set_fact:
+  ansible.builtin.set_fact:
     lihas_become: "yes"
   when: ansible_effective_user_id != "root"
 - name: install apache2
-  apt:
+  ansible.builtin.apt:
     name: "{{ item }}"
     state: present
   loop:
     - apache2
   loop_control:
     loop_var: item
-  become: "{{lihas_become | default('no')}}"
+  become: "{{ lihas_become | default(no) }}"
 
 # setup apache2
 - name: apache base configuration, leak less information about server
-  copy:
+  ansible.builtin.copy:
     dest: "{{ item }}"
     src: "files/{{ item }}"
+    mode: '0644'
   loop:
     - "/etc/apache2/conf-available/servername.conf"
     - "/etc/apache2/conf-available/serversignature.conf"
@@ -31,33 +32,36 @@
   loop_control:
     loop_var: item
   notify: reload_apache2
-  become: "{{lihas_become | default('no')}}"
+  become: "{{ lihas_become | default(no) }}"
 
-- stat:
+- name: check if security is enabled
+  ansible.builtin.stat:
     path: /etc/apache2/conf-enabled/security.conf
   register: statresult
-  become: "{{lihas_become | default('no')}}"
+  become: "{{ lihas_become | default(no) }}"
 - name: "apache2: disable default security"
-  command: a2disconf security
+  ansible.builtin.command: a2disconf security
   notify: reload_apache2
-  when: statresult.stat.exists == true
-  become: "{{lihas_become | default('no')}}"
+  when: statresult.stat.exists
+  become: "{{ lihas_become | default(no) }}"
 
-- stat:
+- name: stat /etc/apache2/sites-enabled/000-default.conf
+  ansible.builtin.stat:
     path: /etc/apache2/sites-enabled/000-default.conf
   register: statresult
-  become: "{{lihas_become | default('no')}}"
+  become: "{{ lihas_become | default(no) }}"
 - name: "apache2: disable default site"
-  command: a2dissite 000-default
+  ansible.builtin.command: a2dissite 000-default
   notify: reload_apache2
-  when: statresult.stat.exists == true
-  become: "{{lihas_become | default('no')}}"
+  when: statresult.stat.exists
+  become: "{{ lihas_become | default(no) }}"
 
 # Weniger Angriffsfläche auf den Client (XSS u.ä.)
 - name: reduce client attack surface
-  copy:
+  ansible.builtin.copy:
     dest: "{{ item }}"
     src: "files/{{ item }}"
+    mode: '0644'
   loop:
     - "/etc/apache2/conf-available/x-frame-options-sameorigin.conf"
     - "/etc/apache2/conf-available/x-content-type-options-nosniff.conf"
@@ -65,13 +69,14 @@
   loop_control:
     loop_var: item
   notify: reload_apache2
-  become: "{{lihas_become | default('no')}}"
+  become: "{{ lihas_become | default(no) }}"
 
 # SSL
 - name: SSL base configuration
-  copy:
+  ansible.builtin.copy:
     dest: "{{ item }}"
     src: "files/{{ item }}"
+    mode: '0644'
   loop:
     - "/etc/apache2/conf-available/cipherorder.conf"
     - "/etc/apache2/conf-available/sslprotocol.conf"
@@ -80,39 +85,39 @@
   loop_control:
     loop_var: item
   notify: reload_apache2
-  become: "{{lihas_become | default('no')}}"
+  become: "{{ lihas_become | default(no) }}"
 
 - name: collect enabled modules
-  set_fact:
+  ansible.builtin.set_fact:
     apache_module_enabled: "{{ apache_module_enabled | default([]) + hostvars[inventory_hostname][item]['config']['apache']['module']['enabled'] }}"
-    cacheable: no
+    cacheable: false
   loop: "{{ configspaces }}"
   when: hostvars[inventory_hostname][item]['config']['apache']['module']['enabled'] is defined
-  become: "{{lihas_become | default('no')}}"
+  become: "{{ lihas_become | default(no) }}"
 - name: collect disabled module
-  set_fact:
+  ansible.builtin.set_fact:
     apache_module_disabled: "{{ apache_module_disabled | default([]) + hostvars[inventory_hostname][item]['config']['apache']['module']['disabled'] }}"
-    cacheable: no
+    cacheable: false
   loop: "{{ configspaces }}"
   when: hostvars[inventory_hostname][item]['config']['apache']['module']['disabled'] is defined
-  become: "{{lihas_become | default('no')}}"
+  become: "{{ lihas_become | default(no) }}"
 - name: collect enabled conf
-  set_fact:
+  ansible.builtin.set_fact:
     apache_conf_enabled: "{{ apache_conf_enabled | default([]) + hostvars[inventory_hostname][item]['config']['apache']['conf']['enabled'] }}"
-    cacheable: no
+    cacheable: false
   loop: "{{ configspaces }}"
   when: hostvars[inventory_hostname][item]['config']['apache']['conf']['enabled'] is defined
-  become: "{{lihas_become | default('no')}}"
+  become: "{{ lihas_become | default(no) }}"
 - name: collect disabled conf
-  set_fact:
+  ansible.builtin.set_fact:
     apache_conf_disabled: "{{ apache_conf_disabled | default([]) + hostvars[inventory_hostname][item]['config']['apache']['conf']['disabled'] }}"
-    cacheable: no
+    cacheable: false
   loop: "{{ configspaces }}"
   when: hostvars[inventory_hostname][item]['config']['apache']['conf']['disabled'] is defined
-  become: "{{lihas_become | default('no')}}"
+  become: "{{ lihas_become | default(no) }}"
 
 - name: apache enable conf
-  include_tasks: "50-apache-a2enconf.yml"
+  ansible.builtin.include_tasks: "50-apache-a2enconf.yml"
   loop:
     - servername
     - serversignature
@@ -129,7 +134,7 @@
   loop_control:
     loop_var: item
 - name: apache global httpsrewrite
-  include_tasks: "50-apache-a2enconf.yml"
+  ansible.builtin.include_tasks: "50-apache-a2enconf.yml"
   loop:
     - httpsrewrite
   loop_control:
@@ -137,7 +142,7 @@
   when: LIHASVARS.apache.features.httpsrewrite | default(true)
 
 - name: apache enable modules
-  include_tasks: "50-apache-a2enmod.yml"
+  ansible.builtin.include_tasks: "50-apache-a2enmod.yml"
   loop:
     - ssl
     - headers
@@ -146,99 +151,104 @@
     loop_var: item
 
 - name: collect rproxy entries
-  set_fact:
+  ansible.builtin.set_fact:
     rproxy_domains: "{{ LIHASVARS.roles.rproxy | default({}) }}"
   when: LIHASVARS.roles.rproxy is defined
-  become: "{{lihas_become | default('no')}}"
-- debug:
-    var: hostvars[inventory_hostname][item]
-  loop: "{{ configspaces }}"
+- name: DEBUG RPROXY after %.roles.rproxy.domains
+  ansible.builtin.debug:
+    var: rproxy_domainnames
 - name: collect rproxy entries
-  set_fact:
+  ansible.builtin.set_fact:
     rproxy_domains: "{{ rproxy_domains | default({}) | combine( { 'domains': hostvars[inventory_hostname][item]['config']['roles']['rproxy']['domains'] } ) }}"
-    cacheable: no
+    cacheable: false
   loop: "{{ configspaces }}"
   when: hostvars[inventory_hostname][item]['config']['roles']['rproxy']['domains'] is defined
+- name: DEBUG RPROXY after %.roles.rproxy.domains
+  ansible.builtin.debug:
+    var: rproxy_domainnames
 
 - name: collect rproxy entries LIHASVARS
-  set_fact:
+  ansible.builtin.set_fact:
     rproxy_domainnames: "{{ LIHASVARS.roles.rproxy.domains | default({}) | flatten(levels=1) }}"
   loop: "{{ configspaces }}"
   when: LIHASVARS.roles.rproxy is defined and LIHASVARS.roles.rproxy.domains is defined
-  become: "{{lihas_become | default('no')}}"
+- name: DEBUG RPROXY after %.roles.rproxy.domains
+  ansible.builtin.debug:
+    var: rproxy_domainnames
 - name: "collect rproxy entries {{ configspaces }}"
-  set_fact:
-    rproxy_domainnames: "{{ rproxy_domainnames | default([]) + hostvars[inventory_hostname][item]['config']['roles']['rproxy']['domains'] | default({}) | flatten(levels=1) }}"
-    cacheable: no
+  ansible.builtin.set_fact:
+    rproxy_domainnames: >
+      {{ rproxy_domainnames | default([]) + hostvars[inventory_hostname][item]['config']['roles']['rproxy']['domains'] |
+      default({}) | flatten(levels=1) }}
+    cacheable: false
   loop: "{{ configspaces }}"
   when: hostvars[inventory_hostname][item]['config']['roles']['rproxy']['domains'] is defined
-  become: "{{lihas_become | default('no')}}"
 - name: DEBUG RPROXY after %.roles.rproxy.domains
-  debug:
+  ansible.builtin.debug:
     var: rproxy_domainnames
 - name: collect dehydrated entries
-  set_fact:
+  ansible.builtin.set_fact:
     rproxy_domainnames: "{{ rproxy_domainnames | default([]) + hostvars[inventory_hostname][item]['config']['roles']['dehydrated']['domains'] | default({}) | flatten(levels=1) }}"
-    cacheable: no
+    cacheable: false
   loop: "{{ configspaces }}"
   when: hostvars[inventory_hostname][item]['config']['roles']['dehydrated']['domains'] is defined
 - name: DEBUG RPROXY after %.roles.dehydrated.domains
-  debug:
+  ansible.builtin.debug:
     var: rproxy_domainnames
 - name: collect external_redirect entries
-  set_fact:
+  ansible.builtin.set_fact:
     rproxy_domainnames: "{{ rproxy_domainnames | default([]) + hostvars[inventory_hostname][item]['config']['roles']['external_redirect']['domains'] | default({}) | flatten(levels=1) }}"
-    cacheable: no
+    cacheable: false
   loop: "{{ configspaces }}"
   when: hostvars[inventory_hostname][item]['config']['roles']['external_redirect']['domains'] is defined
 
 
 # Apache HTTPS Reverse Proxy, Zielserver ist HTTPS
 - name: "/etc/apache2/sites-available/reverse_proxy_https_letsencrypt.conf"
-  template:
+  ansible.builtin.template:
     dest: /etc/apache2/sites-available/reverse_proxy_https_letsencrypt.conf
     src: files/etc/apache2/sites-available/reverse_proxy_https_letsencrypt.conf
   notify: reload_apache2
-  become: "{{lihas_become | default('no')}}"
+  become: "{{ lihas_become | default(no) }}"
 
 - name: collect external_redirect entries
-  set_fact:
+  ansible.builtin.set_fact:
     external_redirect_domains: "{{ LIHASVARS.roles.external_redirect | default({}) }}"
   when: LIHASVARS.roles.external_redirect is defined
 - name: collect external_redirect entries
-  set_fact:
+  ansible.builtin.set_fact:
     external_redirect_domains: "{{ external_redirect_domains | default({}) | combine( { 'domains': hostvars[inventory_hostname][item]['config']['roles']['external_redirect']['domains'] } ) }}"
-    cacheable: no
+    cacheable: false
   loop: "{{ configspaces }}"
   when: hostvars[inventory_hostname][item]['config']['roles']['external_redirect']['domains'] is defined
 # Apache HTTPS external redirects, domain->domain
 - name: "/etc/apache2/sites-available/reverse_proxy_https_letsencrypt.conf"
-  template:
+  ansible.builtin.template:
     dest: /etc/apache2/sites-available/external_redirect.conf
     src: files/etc/apache2/sites-available/external_redirect.conf
   notify: reload_apache2
-  become: "{{lihas_become | default('no')}}"
+  become: "{{ lihas_become | default(no) }}"
 
 # Apache HTTPS local domains
 - name: collect local_pages entries
-  set_fact:
+  ansible.builtin.set_fact:
     local_pages: "{{ LIHASVARS.roles.local_pages | default({}) }}"
   when: LIHASVARS.roles.local_pages is defined
 - name: collect local_pages entries
-  set_fact:
+  ansible.builtin.set_fact:
     local_pages: "{{ local_pages | default({}) | combine( { 'domains': hostvars[inventory_hostname][item]['config']['roles']['local_pages']['domains'] } ) }}"
-    cacheable: no
+    cacheable: false
   loop: "{{ configspaces }}"
   when: hostvars[inventory_hostname][item]['config']['roles']['local_pages']['domains'] is defined
 - name: "/etc/apache2/sites-available/local_pages.conf"
-  template:
+  ansible.builtin.template:
     dest: /etc/apache2/sites-available/local_pages.conf
     src: files/etc/apache2/sites-available/local_pages.conf
   notify: reload_apache2
-  become: "{{lihas_become | default('no')}}"
+  become: "{{ lihas_become | default(no) }}"
 
 - name: apache enable site
-  include_tasks: "50-apache-a2ensite.yml"
+  ansible.builtin.include_tasks: "50-apache-a2ensite.yml"
   loop:
     - reverse_proxy_https_letsencrypt
     - external_redirect
@@ -247,7 +257,7 @@
     loop_var: item
 
 - name: apache enable modules
-  include_tasks: "50-apache-a2enmod.yml"
+  ansible.builtin.include_tasks: "50-apache-a2enmod.yml"
   loop:
     - macro
     - proxy
@@ -258,19 +268,19 @@
     loop_var: item
 
 - name: Dummy Zertifikate rproxy_domainnames
-  include_tasks: "50-apache-dummycert.yml"
+  ansible.builtin.include_tasks: "50-apache-dummycert.yml"
   loop: "{{ rproxy_domainnames }}"
   loop_control:
     loop_var: item
   when: rproxy_domainnames is defined
 - name: Dummy Zertifikate external_redirect_domains
-  include_tasks: "50-apache-dummycert.yml"
+  ansible.builtin.include_tasks: "50-apache-dummycert.yml"
   loop: "{{ external_redirect_domains.domains | flatten(levels=1) }}"
   loop_control:
     loop_var: item
   when: external_redirect_domains.domains is defined
 - name: Dummy Zertifikate local_pages
-  include_tasks: "50-apache-dummycert.yml"
+  ansible.builtin.include_tasks: "50-apache-dummycert.yml"
   loop: "{{ local_pages.domains | flatten(levels=1) }}"
   loop_control:
     loop_var: item
@@ -283,28 +293,28 @@
       {{ rproxy_domains.domains[item]['target_ip'] | default('#') }} {{ item }}
   loop: "{{ rproxy_domains.domains | flatten(levels=1) }}"
   when: rproxy_domains is defined
-  become: "{{lihas_become | default('no')}}"
+  become: "{{ lihas_become | default(no) }}"
 
 - name: apache enable additional modules
-  include_tasks: "50-apache-a2enmod.yml"
+  ansible.builtin.include_tasks: "50-apache-a2enmod.yml"
   with_list: "{{ apache_module_enabled }}"
   loop_control:
     loop_var: item
   when: apache_module_enabled is defined
 - name: apache disable unwanted modules
-  include_tasks: "50-apache-a2dismod.yml"
+  ansible.builtin.include_tasks: "50-apache-a2dismod.yml"
   with_list: "{{ apache_module_disabled }}"
   loop_control:
     loop_var: item
   when: apache_module_disabled is defined
 - name: apache enable additional config
-  include_tasks: "50-apache-a2enconf.yml"
+  ansible.builtin.include_tasks: "50-apache-a2enconf.yml"
   with_list: "{{ apache_conf_enabled }}"
   loop_control:
     loop_var: item
   when: apache_conf_enabled is defined
 - name: apache disable unwanted config
-  include_tasks: "50-apache-a2disconf.yml"
+  ansible.builtin.include_tasks: "50-apache-a2disconf.yml"
   with_list: "{{ apache_conf_disabled }}"
   loop_control:
     loop_var: item

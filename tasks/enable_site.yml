@@ -1,13 +1,13 @@
 ---
 - name: apache enable site
-  include_tasks: "50-apache-a2ensite.yml"
+  ansible.builtin.include_tasks: "50-apache-a2ensite.yml"
   loop: apache_sites_enabled
   loop_control:
     loop_var: item
-  become: "{{lihas_become | default('no')}}"
+  become: "{{ lihas_become | default(no) }}"
 - name: Dummy Zertifikate
-  include_tasks: "50-apache-dummycert.yml"
+  ansible.builtin.include_tasks: "50-apache-dummycert.yml"
   loop: "{{ apache_sites_enabled }}"
   loop_control:
     loop_var: item
-  become: "{{lihas_become | default('no')}}"
+  become: "{{ lihas_become | default(no) }}"
