@@ -1,5 +1,5 @@
 ---
-- name: apache enable site
+- name: Apache enable site
   ansible.builtin.include_tasks: "50-apache-a2ensite.yml"
   loop: apache_sites_enabled
   loop_control:

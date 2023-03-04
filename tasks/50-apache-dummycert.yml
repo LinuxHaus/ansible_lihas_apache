@@ -1,16 +1,16 @@
 ---
-- name: check if {{ item }}/fullchain.pem exists
+- name: Check if {{ item }}/fullchain.pem exists
   ansible.builtin.stat:
     path: "/var/lib/dehydrated/certs/{{ item }}/fullchain.pem"
   register: statresult
   become: "{{ lihas_become | default(no) }}"
-- name: "create /var/lib/dehydrated/certs/{{ item }}"
+- name: "Create /var/lib/dehydrated/certs/{{ item }}"
   ansible.builtin.file:
     path: "/var/lib/dehydrated/certs/{{ item }}"
     state: directory
     mode: '0755'
   become: "{{ lihas_become | default(no) }}"
-- name: "create /var/lib/dehydrated/certs/{{ item }}/fullchain.pem"
+- name: "Create /var/lib/dehydrated/certs/{{ item }}/fullchain.pem"
   ansible.builtin.file:
     path: "/var/lib/dehydrated/certs/{{ item }}/fullchain.pem"
     src: /etc/ssl/certs/ssl-cert-snakeoil.pem
@@ -18,7 +18,7 @@
   notify: restart_apache2
   when: not statresult.stat.exists
   become: "{{ lihas_become | default(no) }}"
-- name: "create /var/lib/dehydrated/certs/{{ item }}/privkey.pem"
+- name: "Create /var/lib/dehydrated/certs/{{ item }}/privkey.pem"
   ansible.builtin.file:
     path: "/var/lib/dehydrated/certs/{{ item }}/privkey.pem"
     src: /etc/ssl/private/ssl-cert-snakeoil.key

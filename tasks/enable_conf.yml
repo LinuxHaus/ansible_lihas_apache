@@ -1,5 +1,5 @@
 ---
-- name: deploy additional apache configuration
+- name: Deploy additional apache configuration
   ansible.builtin.copy:
     dest: "/etc/apache2/conf-available/{{ item }}.conf"
     src: "files/etc/apache2/conf-available/{{ item }}.conf"
@@ -10,7 +10,7 @@
   notify: reload_apache2
   become: "{{ lihas_become | default(no) }}"
 
-- name: apache enable conf
+- name: Apache enable conf
   ansible.builtin.include_tasks: "50-apache-a2enconf.yml"
   loop: apache_conf_enabled
   loop_control:

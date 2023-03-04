@@ -1,10 +1,10 @@
 ---
-- name: check if {{ item }} is enabled
+- name: Check if {{ item }} is enabled
   ansible.builtin.stat:
     path: /etc/apache2/conf-enabled/{{ item }}.conf
   register: statresult
   become: "{{ lihas_become | default(no) }}"
-- name: "apache2: disable conf {{ item }}"
+- name: "Apache2: disable conf {{ item }}"
   ansible.builtin.command: a2disconf {{ item }}
   notify: reload_apache2
   when: statresult.stat.exists

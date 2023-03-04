@@ -1,5 +1,6 @@
 ---
-- hosts: '*'
+- name: "Run"
+  hosts: '*'
   roles:
     - lihas_apache
 ...
