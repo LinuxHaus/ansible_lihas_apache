@@ -1,6 +1,7 @@
 ---
 galaxy_info:
   author: Adrian Reyer <lihas@lihas.de>
+  namespace: lihas
   description: Install Apache and does basic configuration
   license: GPL-3.0-or-later
   company: LiHAS - LinuxHaus Stuttgart
