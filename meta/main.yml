@@ -5,7 +5,7 @@ galaxy_info:
   description: Install Apache and does basic configuration
   license: GPL-3.0-or-later
   company: LiHAS - LinuxHaus Stuttgart
-  min_ansible_version: '2.4'
+  min_ansible_version: '2.14'
   galaxy_tags: []
   platforms:
     - name: Debian
