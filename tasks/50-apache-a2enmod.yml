@@ -6,7 +6,7 @@
   become: "{{ lihas_become | default(no) }}"
 - name: "Apache2: enable module {{ item }}"
   ansible.builtin.command: a2enmod {{ item }}
-  notify: restart_apache2
+  notify: Restart apache2
   changed_when: true
   when: not statresult.stat.exists
   become: "{{ lihas_become | default(no) }}"

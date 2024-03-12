@@ -34,7 +34,7 @@
     - "/etc/apache2/conf-available/no-x-powered-by.conf"
   loop_control:
     loop_var: item
-  notify: reload_apache2
+  notify: Reload apache2
   become: "{{ lihas_become | default(no) }}"
 
 - name: Check if security is enabled
@@ -44,8 +44,9 @@
   become: "{{ lihas_become | default(no) }}"
 - name: "Apache2: disable default security"
   ansible.builtin.command: a2disconf security
-  notify: reload_apache2
+  notify: Reload apache2
   when: statresult.stat.exists
+  changed_when: false
   become: "{{ lihas_become | default(no) }}"
 
 - name: Stat /etc/apache2/sites-enabled/000-default.conf
@@ -55,7 +56,8 @@
   become: "{{ lihas_become | default(no) }}"
 - name: "Apache2: disable default site"
   ansible.builtin.command: a2dissite 000-default
-  notify: reload_apache2
+  notify: Reload apache2
+  changed_when: false
   when: statresult.stat.exists
   become: "{{ lihas_become | default(no) }}"
 
@@ -71,7 +73,7 @@
     - "/etc/apache2/conf-available/referrer-policy.conf"
   loop_control:
     loop_var: item
-  notify: reload_apache2
+  notify: Reload apache2
   become: "{{ lihas_become | default(no) }}"
 
 # SSL
@@ -87,7 +89,7 @@
     - "/etc/apache2/conf-available/sslproxy.conf"
   loop_control:
     loop_var: item
-  notify: reload_apache2
+  notify: Reload apache2
   become: "{{ lihas_become | default(no) }}"
 
 - name: Collect enabled modules
@@ -221,7 +223,7 @@
     dest: /etc/apache2/sites-available/reverse_proxy_https_letsencrypt.conf
     src: files/etc/apache2/sites-available/reverse_proxy_https_letsencrypt.conf
     mode: '0444'
-  notify: reload_apache2
+  notify: Reload apache2
   become: "{{ lihas_become | default(no) }}"
 
 - name: Collect external_redirect entries
@@ -242,7 +244,7 @@
     dest: /etc/apache2/sites-available/external_redirect.conf
     src: files/etc/apache2/sites-available/external_redirect.conf
     mode: '0444'
-  notify: reload_apache2
+  notify: Reload apache2
   become: "{{ lihas_become | default(no) }}"
 
 # Apache HTTPS local domains
@@ -261,7 +263,7 @@
     dest: /etc/apache2/sites-available/local_pages.conf
     src: files/etc/apache2/sites-available/local_pages.conf
     mode: '0444'
-  notify: reload_apache2
+  notify: Reload apache2
   become: "{{ lihas_become | default(no) }}"
 
 - name: Apache enable site

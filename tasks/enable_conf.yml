@@ -7,7 +7,7 @@
   loop: apache_conf_enabled
   loop_control:
     loop_var: item
-  notify: reload_apache2
+  notify: Reload apache2
   become: "{{ lihas_become | default(no) }}"
 
 - name: Apache enable conf

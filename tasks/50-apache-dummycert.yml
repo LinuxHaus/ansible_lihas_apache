@@ -15,7 +15,7 @@
     path: "{{ '/var/lib/dehydrated/certs/' + item + '/fullchain.pem' }}"
     src: /etc/ssl/certs/ssl-cert-snakeoil.pem
     state: link
-  notify: restart_apache2
+  notify: Restart apache2
   when: not statresult.stat.exists
   become: "{{ lihas_become | default(no) }}"
 - name: "{{ 'Create /var/lib/dehydrated/certs/' + item + '/privkey.pem' }}"
@@ -23,6 +23,6 @@
     path: "{{ '/var/lib/dehydrated/certs/' + item + '/privkey.pem' }}"
     src: /etc/ssl/private/ssl-cert-snakeoil.key
     state: link
-  notify: restart_apache2
+  notify: Restart apache2
   when: not statresult.stat.exists
   become: "{{ lihas_become | default(no) }}"

@@ -6,7 +6,7 @@
   become: "{{ lihas_become | default(no) }}"
 - name: "Apache2: disable conf {{ item }}"
   ansible.builtin.command: a2disconf {{ item }}
-  notify: reload_apache2
+  notify: Reload apache2
   changed_when: true
   when: statresult.stat.exists
   become: "{{ lihas_become | default(no) }}"
