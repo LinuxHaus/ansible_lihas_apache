@@ -16,6 +16,7 @@ ansible-playbook -i localhost, apache.yml
   dst: NEWDOMAIN
 %.config.roles.local_pages.domains.DOMAINNAME
   documentroot: DOCUMENTROOT, default: /var/www/html/DOMAINNAME
+  phpfpmsocket: Path to PHP-Socket, default /run/php/php-fpm.sock
 %.config.roles.rproxy.domains.DOMAINNAME
   target_ip: IP of real host, will de added to /etc/hosts as IP DOMAINNAME
   method: http or https, default https
