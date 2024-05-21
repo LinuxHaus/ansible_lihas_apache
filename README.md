@@ -14,12 +14,17 @@ ansible-playbook -i localhost, apache.yml
 ```
 %.config.roles.external_redirect.domains.DOMAINNAME:
   dst: NEWDOMAIN
+  method: https, httpok, default https
+    # httpok: http stays http, https stays https
 %.config.roles.local_pages.domains.DOMAINNAME
   documentroot: DOCUMENTROOT, default: /var/www/html/DOMAINNAME
   phpfpmsocket: Path to PHP-Socket, default /run/php/php-fpm.sock
 %.config.roles.rproxy.domains.DOMAINNAME
   target_ip: IP of real host, will de added to /etc/hosts as IP DOMAINNAME
-  method: http or https, default https
+  method: http, https, httpok, default https
+    http: target does http only, external rewrite http->https
+    https: target does https only, external rewrite http->https
+    httpok: http stays http, https stays https
   port: target port for http, default 80, currently only for method http
 %.config.apache.conf.enabled: []
 %.config.apache.conf.disabled: []
