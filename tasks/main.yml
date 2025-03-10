@@ -156,66 +156,34 @@
   loop_control:
     loop_var: item
 
+- name: Collect local_pages entries LIHASVARS.roles.local_pages
+  ansible.builtin.set_fact:
+    local_pages: "{{ LIHASVARS.roles.local_pages | default({}) }}"
+  when: LIHASVARS.roles.local_pages is defined
+- name: "Collect local_pages entries {{ configspaces }}"
+  ansible.builtin.set_fact:
+    local_pages: "{{ local_pages | default({}) | combine(hostvars[inventory_hostname][item]['config']['roles']['local_pages'] | default({})) }}"
+    cacheable: false
+  loop: "{{ configspaces }}"
+  when: hostvars[inventory_hostname][item]['config']['roles']['local_pages']['domains'] is defined
 - name: Collect rproxy entries
   ansible.builtin.set_fact:
     rproxy_domains: "{{ LIHASVARS.roles.rproxy | default({}) }}"
   when: LIHASVARS.roles.rproxy is defined
-- name: DEBUG RPROXY after %.roles.rproxy.domains
+- name: DEBUG RPROXY after LIHASVARS.roles.rproxy
   ansible.builtin.debug:
-    var: rproxy_domainnames
+    var: rproxy_domains
     verbosity: 1
 - name: Collect rproxy entries
   ansible.builtin.set_fact:
-    rproxy_domains: "{{ rproxy_domains | default({}) | combine({'domains': hostvars[inventory_hostname][item]['config']['roles']['rproxy']['domains']}) }}"
+    rproxy_domains: "{{ rproxy_domains | default({}) | combine(hostvars[inventory_hostname][item]['config']['roles']['rproxy'] | default({})) }}"
     cacheable: false
   loop: "{{ configspaces }}"
   when: hostvars[inventory_hostname][item]['config']['roles']['rproxy']['domains'] is defined
 - name: DEBUG RPROXY after %.roles.rproxy.domains
   ansible.builtin.debug:
-    var: rproxy_domainnames
+    var: rproxy_domains
     verbosity: 1
-
-- name: Collect rproxy entries LIHASVARS
-  ansible.builtin.set_fact:
-    rproxy_domainnames: "{{ LIHASVARS.roles.rproxy.domains | default({}) | flatten(levels=1) }}"
-  loop: "{{ configspaces }}"
-  when: LIHASVARS.roles.rproxy.domains is defined
-- name: DEBUG RPROXY after %.roles.rproxy.domains
-  ansible.builtin.debug:
-    var: rproxy_domainnames
-    verbosity: 1
-- name: "Collect rproxy entries {{ configspaces }}"
-  ansible.builtin.set_fact:
-    rproxy_domainnames: >
-      {{ rproxy_domainnames | default([]) + hostvars[inventory_hostname][item]['config']['roles']['rproxy']['domains'] |
-      default({}) | flatten(levels=1) }}
-    cacheable: false
-  loop: "{{ configspaces }}"
-  when: hostvars[inventory_hostname][item]['config']['roles']['rproxy']['domains'] is defined
-- name: DEBUG RPROXY after %.roles.rproxy.domains
-  ansible.builtin.debug:
-    var: rproxy_domainnames
-    verbosity: 1
-- name: Collect dehydrated entries
-  ansible.builtin.set_fact:
-    rproxy_domainnames: >
-      {{ rproxy_domainnames | default([]) + hostvars[inventory_hostname][item]['config']['roles']['dehydrated']['domains'] | default({}) |
-      flatten(levels=1) }}
-    cacheable: false
-  loop: "{{ configspaces }}"
-  when: hostvars[inventory_hostname][item]['config']['roles']['dehydrated']['domains'] is defined
-- name: DEBUG RPROXY after %.roles.dehydrated.domains
-  ansible.builtin.debug:
-    var: rproxy_domainnames
-    verbosity: 1
-- name: Collect external_redirect entries
-  ansible.builtin.set_fact:
-    rproxy_domainnames: >
-      {{ rproxy_domainnames | default([]) + hostvars[inventory_hostname][item]['config']['roles']['external_redirect']['domains'] |
-      flatten(levels=1) }}
-    cacheable: false
-  loop: "{{ configspaces }}"
-  when: hostvars[inventory_hostname][item]['config']['roles']['external_redirect']['domains'] is defined
 
 # Apache HTTPS Reverse Proxy, Zielserver ist HTTPS
 - name: "File /etc/apache2/sites-available/reverse_proxy_https_letsencrypt.conf"
@@ -225,7 +193,36 @@
     mode: '0444'
   notify: Reload apache2
   become: "{{ lihas_become | default(no) }}"
-
+- name: "Directory /etc/apache2/site-snippets"
+  ansible.builtin.file:
+    path: "/etc/apache2/site-snippets"
+    mode: '0755'
+    state: directory
+    recurse: true
+- name: DEBUG {{ local_pages | default({}) | combine( rproxy_domains | default({}) ) }}
+  ansible.builtin.debug:
+    msg: "{{ local_pages | default({}) | combine( rproxy_domains | default({}) ) }}"
+    verbosity: 1
+- name: "File /etc/apache2/site-snippets/ansible-pre.conf"
+  ansible.builtin.template:
+    dest: "/etc/apache2/site-snippets/ansible-pre-{{ domainitem }}.conf"
+    src: files/etc/apache2/site-snippets/ansible-pre.conf
+    mode: '0444'
+  notify: Reload apache2
+  when: rproxy_domains.domains[domainitem].pre is defined or local_pages.domains[domainitem].pre is defined
+  with_items: "{{ local_pages | default({}) | combine( rproxy_domains | default({}) ) }}"
+  loop_control:
+    loop_var: domainitem
+- name: "File /etc/apache2/site-snippets/ansible-post.conf"
+  ansible.builtin.template:
+    dest: "/etc/apache2/site-snippets/ansible-post-{{ domainitem }}.conf"
+    src: files/etc/apache2/site-snippets/ansible-post.conf
+    mode: '0444'
+  notify: Reload apache2
+  when: rproxy_domains.domains[domainitem].post is defined or local_pages.domains[domainitem].post is defined
+  with_items: "{{ local_pages | default({}) | combine( rproxy_domains | default({}) ) }}"
+  loop_control:
+    loop_var: domainitem
 - name: Collect external_redirect entries
   ansible.builtin.set_fact:
     external_redirect_domains: "{{ LIHASVARS.roles.external_redirect | default({}) }}"
@@ -234,7 +231,7 @@
   ansible.builtin.set_fact:
     external_redirect_domains: >
       {{ external_redirect_domains | default({}) |
-      combine({'domains': hostvars[inventory_hostname][item]['config']['roles']['external_redirect']['domains']}) }}
+      combine(hostvars[inventory_hostname][item]['config']['roles']['external_redirect']) }}
     cacheable: false
   loop: "{{ configspaces }}"
   when: hostvars[inventory_hostname][item]['config']['roles']['external_redirect']['domains'] is defined
@@ -248,16 +245,6 @@
   become: "{{ lihas_become | default(no) }}"
 
 # Apache HTTPS local domains
-- name: Collect local_pages entries
-  ansible.builtin.set_fact:
-    local_pages: "{{ LIHASVARS.roles.local_pages | default({}) }}"
-  when: LIHASVARS.roles.local_pages is defined
-- name: Collect local_pages entries
-  ansible.builtin.set_fact:
-    local_pages: "{{ local_pages | default({}) | combine({'domains': hostvars[inventory_hostname][item]['config']['roles']['local_pages']['domains']}) }}"
-    cacheable: false
-  loop: "{{ configspaces }}"
-  when: hostvars[inventory_hostname][item]['config']['roles']['local_pages']['domains'] is defined
 - name: "/etc/apache2/sites-available/local_pages.conf"
   ansible.builtin.template:
     dest: /etc/apache2/sites-available/local_pages.conf
@@ -287,12 +274,12 @@
   loop_control:
     loop_var: item
 
-- name: Dummy Zertifikate rproxy_domainnames
+- name: Dummy Zertifikate rproxy_domains 
   ansible.builtin.include_tasks: "50-apache-dummycert.yml"
-  loop: "{{ rproxy_domainnames }}"
+  loop: "{{ rproxy_domains.domains | flatten(levels=1) }}"
   loop_control:
     loop_var: item
-  when: rproxy_domainnames is defined
+  when: rproxy_domains.domains is defined
 - name: Dummy Zertifikate external_redirect_domains
   ansible.builtin.include_tasks: "50-apache-dummycert.yml"
   loop: "{{ external_redirect_domains.domains | flatten(levels=1) }}"

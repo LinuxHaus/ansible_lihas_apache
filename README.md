@@ -19,6 +19,10 @@ ansible-playbook -i localhost, apache.yml
 %.config.roles.local_pages.domains.DOMAINNAME
   documentroot: DOCUMENTROOT, default: /var/www/html/DOMAINNAME
   phpfpmsocket: Path to PHP-Socket, default /run/php/php-fpm.sock
+  pre: []
+    array of lines to include in apache configuration before default config
+  post: []
+    array of lines to include in apache configuration after default config
 %.config.roles.rproxy.domains.DOMAINNAME
   target_ip: IP of real host, will de added to /etc/hosts as IP DOMAINNAME
   method: http, https, httpok, default https
@@ -26,6 +30,10 @@ ansible-playbook -i localhost, apache.yml
     https: target does https only, external rewrite http->https
     httpok: http stays http, https stays https
   port: target port for http, default 80, currently only for method http
+  pre: []
+    array of lines to include in apache configuration before default ProxyPass
+  post: []
+    array of lines to include in apache configuration after default ProxyPass
 %.config.apache.conf.enabled: []
 %.config.apache.conf.disabled: []
 %.config.apache.module.enabled: []
