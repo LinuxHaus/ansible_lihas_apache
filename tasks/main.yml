@@ -199,18 +199,23 @@
     mode: '0755'
     state: directory
     recurse: true
-- name: DEBUG {{ local_pages | default({}) | combine( rproxy_domains | default({}) ) }}
+- name: DEBUG local_pages combined rproxy_domains {{ local_pages | default({}) | combine( rproxy_domains | default({}) ) }}
   ansible.builtin.debug:
     msg: "{{ local_pages | default({}) | combine( rproxy_domains | default({}) ) }}"
     verbosity: 1
+- name: Merge for site-snippets/pre
+  ansible.builtin.set_fact:
+    domains_site_snippets: "{{ local_pages | default({}) | combine( rproxy_domains | default({}) ) }}"
+    cacheable: false
+  loop: "{{ configspaces }}"
 - name: "File /etc/apache2/site-snippets/ansible-pre.conf"
   ansible.builtin.template:
     dest: "/etc/apache2/site-snippets/ansible-pre-{{ domainitem }}.conf"
     src: files/etc/apache2/site-snippets/ansible-pre.conf
     mode: '0444'
   notify: Reload apache2
-  when: rproxy_domains.domains[domainitem].pre is defined or local_pages.domains[domainitem].pre is defined
-  with_items: "{{ local_pages | default({}) | combine( rproxy_domains | default({}) ) }}"
+  when: domains_site_snippets.domains[domainitem].pre is defined
+  with_items: "{{ domains_site_snippets.domains | default({}) }}"
   loop_control:
     loop_var: domainitem
 - name: "File /etc/apache2/site-snippets/ansible-post.conf"
@@ -219,8 +224,8 @@
     src: files/etc/apache2/site-snippets/ansible-post.conf
     mode: '0444'
   notify: Reload apache2
-  when: rproxy_domains.domains[domainitem].post is defined or local_pages.domains[domainitem].post is defined
-  with_items: "{{ local_pages | default({}) | combine( rproxy_domains | default({}) ) }}"
+  when: domains_site_snippets.domains[domainitem].post is defined
+  with_items: "{{ domains_site_snippets.domains | default({}) }}"
   loop_control:
     loop_var: domainitem
 - name: Collect external_redirect entries
