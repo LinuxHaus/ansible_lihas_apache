@@ -18,6 +18,7 @@ ansible-playbook -i localhost, apache.yml
     # httpok: http stays http, https stays https
 %.config.roles.local_pages.domains.DOMAINNAME
   documentroot: DOCUMENTROOT, default: /var/www/html/DOMAINNAME
+  documentroot_create: create documentroot, default false
   phpfpmsocket: Path to PHP-Socket, default /run/php/php-fpm.sock
   pre: []
     array of lines to include in apache configuration before default config

@@ -25,7 +25,7 @@
   ansible.builtin.copy:
     dest: "{{ item }}"
     src: "files/{{ item }}"
-    mode: '0444'
+    mode: "0o444"
   loop:
     - "/etc/apache2/conf-available/servername.conf"
     - "/etc/apache2/conf-available/serversignature.conf"
@@ -66,7 +66,7 @@
   ansible.builtin.copy:
     dest: "{{ item }}"
     src: "files/{{ item }}"
-    mode: '0444'
+    mode: "0o444"
   loop:
     - "/etc/apache2/conf-available/x-frame-options-sameorigin.conf"
     - "/etc/apache2/conf-available/x-content-type-options-nosniff.conf"
@@ -81,7 +81,7 @@
   ansible.builtin.copy:
     dest: "{{ item }}"
     src: "files/{{ item }}"
-    mode: '0444'
+    mode: "0o444"
   loop:
     - "/etc/apache2/conf-available/cipherorder.conf"
     - "/etc/apache2/conf-available/sslprotocol.conf"
@@ -190,29 +190,29 @@
   ansible.builtin.template:
     dest: /etc/apache2/sites-available/reverse_proxy_https_letsencrypt.conf
     src: files/etc/apache2/sites-available/reverse_proxy_https_letsencrypt.conf
-    mode: '0444'
+    mode: "0o444"
   notify: Reload apache2
   become: "{{ lihas_become | default(no) }}"
 - name: "Directory /etc/apache2/site-snippets"
   ansible.builtin.file:
     path: "/etc/apache2/site-snippets"
-    mode: '0755'
+    mode: "0o755"
     state: directory
     recurse: true
-- name: DEBUG local_pages combined rproxy_domains {{ local_pages | default({}) | combine( rproxy_domains | default({}) ) }}
+- name: DEBUG local_pages combined rproxy_domains {{ local_pages | default({}) | combine(rproxy_domains | default({})) }}
   ansible.builtin.debug:
-    msg: "{{ local_pages | default({}) | combine( rproxy_domains | default({}) ) }}"
+    msg: "{{ local_pages | default({}) | combine(rproxy_domains | default({})) }}"
     verbosity: 1
 - name: Merge for site-snippets/pre
   ansible.builtin.set_fact:
-    domains_site_snippets: "{{ local_pages | default({}) | combine( rproxy_domains | default({}) ) }}"
+    domains_site_snippets: "{{ local_pages | default({}) | combine(rproxy_domains | default({})) }}"
     cacheable: false
   loop: "{{ configspaces }}"
 - name: "File /etc/apache2/site-snippets/ansible-pre.conf"
   ansible.builtin.template:
     dest: "/etc/apache2/site-snippets/ansible-pre-{{ domainitem }}.conf"
     src: files/etc/apache2/site-snippets/ansible-pre.conf
-    mode: '0444'
+    mode: "0o444"
   notify: Reload apache2
   when: domains_site_snippets.domains[domainitem].pre is defined
   with_items: "{{ domains_site_snippets.domains | default({}) }}"
@@ -222,7 +222,7 @@
   ansible.builtin.template:
     dest: "/etc/apache2/site-snippets/ansible-post-{{ domainitem }}.conf"
     src: files/etc/apache2/site-snippets/ansible-post.conf
-    mode: '0444'
+    mode: "0o444"
   notify: Reload apache2
   when: domains_site_snippets.domains[domainitem].post is defined
   with_items: "{{ domains_site_snippets.domains | default({}) }}"
@@ -245,16 +245,29 @@
   ansible.builtin.template:
     dest: /etc/apache2/sites-available/external_redirect.conf
     src: files/etc/apache2/sites-available/external_redirect.conf
-    mode: '0444'
+    mode: "0o444"
   notify: Reload apache2
   become: "{{ lihas_become | default(no) }}"
 
-# Apache HTTPS local domains
-- name: "/etc/apache2/sites-available/local_pages.conf"
+- name: DEBUG Apache create DocumentRoot for local pages
+  ansible.builtin.debug:
+    var: item
+  loop: "{{ local_pages.domains | flatten(levels=1) }}"
+- name: Apache create DocumentRoot for local pages
+  ansible.builtin.file:
+    path: "{{ local_pages['domains'][item]['documentroot'] | default('/var/www/html/' + item) }}"
+    owner: www-data
+    group: www-data
+    mode: "0o755"
+    state: directory
+  loop: "{{ local_pages.domains | flatten(levels=1) }}"
+  when: local_pages['domains'][item]['documentroot_create'] | default(false)
+
+- name: "Apache local domains /etc/apache2/sites-available/local_pages.conf"
   ansible.builtin.template:
     dest: /etc/apache2/sites-available/local_pages.conf
     src: files/etc/apache2/sites-available/local_pages.conf
-    mode: '0444'
+    mode: "0o444"
   notify: Reload apache2
   become: "{{ lihas_become | default(no) }}"
 
@@ -279,7 +292,7 @@
   loop_control:
     loop_var: item
 
-- name: Dummy Zertifikate rproxy_domains 
+- name: Dummy Zertifikate rproxy_domains
   ansible.builtin.include_tasks: "50-apache-dummycert.yml"
   loop: "{{ rproxy_domains.domains | flatten(levels=1) }}"
   loop_control:
