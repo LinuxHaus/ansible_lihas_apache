@@ -4,8 +4,15 @@
     path: "{{ '/etc/apache2/mods-enabled/' + item + '.load' }}"
   register: statresult
   become: "{{ lihas_become | default(no) }}"
+- name: Init a2dismod parameters
+  ansible.builtin.set_fact:
+    lihas_cmd_parameters: ""
+- name: Set a2dismod parameters
+  ansible.builtin.set_fact:
+    lihas_cmd_parameters: "-f"
+  when: lihas_apache_a2dismod_force | default(false)
 - name: "Apache2: disable module {{ item }}"
-  ansible.builtin.command: a2dismod {{ item }}
+  ansible.builtin.command: a2dismod {{ lihas_cmd_parameters }} {{ item }}
   notify: Restart apache2
   changed_when: true
   when: statresult.stat.exists

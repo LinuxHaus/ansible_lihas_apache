@@ -38,6 +38,7 @@ ansible-playbook -i localhost, apache.yml
 %.config.apache.conf.disabled: []
 %.config.apache.module.enabled: []
 %.config.apache.module.disabled: []
+lihas_apache_a2dismod_force: boolean
 LIHASVARS.apache.features.httpsrewrite: boolean
   default: true
 ```
