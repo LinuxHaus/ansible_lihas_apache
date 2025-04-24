@@ -253,6 +253,7 @@
   ansible.builtin.debug:
     var: item
   loop: "{{ local_pages.domains | flatten(levels=1) }}"
+  when: local_pages is defined
 - name: Apache create DocumentRoot for local pages
   ansible.builtin.file:
     path: "{{ local_pages['domains'][item]['documentroot'] | default('/var/www/html/' + item) }}"
@@ -261,7 +262,7 @@
     mode: "0o755"
     state: directory
   loop: "{{ local_pages.domains | flatten(levels=1) }}"
-  when: local_pages['domains'][item]['documentroot_create'] | default(false)
+  when: local_pages is defined and local_pages['domains'][item]['documentroot_create'] | default(false)
 
 - name: "Apache local domains /etc/apache2/sites-available/local_pages.conf"
   ansible.builtin.template:
