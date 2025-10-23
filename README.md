@@ -30,6 +30,8 @@ ansible-playbook -i localhost, apache.yml
     http: target does http only, external rewrite http->https
     https: target does https only, external rewrite http->https
     httpok: http stays http, https stays https
+    h2: http2
+    h2c: http2 unencrypted
   port: target port for http, default 80, currently only for method http
   pre: []
     array of lines to include in apache configuration before default ProxyPass

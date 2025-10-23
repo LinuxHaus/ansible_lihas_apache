@@ -208,14 +208,18 @@
     domains_site_snippets: "{{ local_pages | default({}) | combine(rproxy_domains | default({})) }}"
     cacheable: false
   loop: "{{ configspaces }}"
+- name: DEBUG domains_site_snippets
+  ansible.builtin.debug:
+    var: domains_site_snippets
+    verbosity: 1
 - name: "File /etc/apache2/site-snippets/ansible-pre.conf"
   ansible.builtin.template:
     dest: "/etc/apache2/site-snippets/ansible-pre-{{ domainitem }}.conf"
     src: files/etc/apache2/site-snippets/ansible-pre.conf
     mode: "0o444"
   notify: Reload apache2
-  when: domains_site_snippets.domains[domainitem].pre is defined
-  with_items: "{{ domains_site_snippets.domains | default({}) }}"
+  when: domains_site_snippets.domains is defined and domains_site_snippets.domains[domainitem].pre is defined
+  with_list: "{{ domains_site_snippets.domains.keys() }}"
   loop_control:
     loop_var: domainitem
 - name: "File /etc/apache2/site-snippets/ansible-post.conf"
@@ -224,8 +228,8 @@
     src: files/etc/apache2/site-snippets/ansible-post.conf
     mode: "0o444"
   notify: Reload apache2
-  when: domains_site_snippets.domains[domainitem].post is defined
-  with_items: "{{ domains_site_snippets.domains | default({}) }}"
+  when: domains_site_snippets.domains is defined and domains_site_snippets.domains[domainitem].post is defined
+  with_list: "{{ domains_site_snippets.domains.keys() }}"
   loop_control:
     loop_var: domainitem
 - name: Collect external_redirect entries
