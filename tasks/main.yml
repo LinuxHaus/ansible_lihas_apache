@@ -119,7 +119,6 @@
     cacheable: false
   loop: "{{ configspaces }}"
   when: hostvars[inventory_hostname][item]['config']['apache']['conf']['disabled'] is defined
-  become: "{{ lihas_become | default(no) }}"
 
 - name: Apache enable conf
   ansible.builtin.include_tasks: "50-apache-a2enconf.yml"
@@ -199,6 +198,7 @@
     mode: "0o755"
     state: directory
     recurse: true
+  become: "{{ lihas_become | default(no) }}"
 - name: DEBUG local_pages combined rproxy_domains {{ local_pages | default({}) | combine(rproxy_domains | default({})) }}
   ansible.builtin.debug:
     msg: "{{ local_pages | default({}) | combine(rproxy_domains | default({})) }}"
@@ -222,6 +222,7 @@
   with_list: "{{ domains_site_snippets.domains.keys() }}"
   loop_control:
     loop_var: domainitem
+  become: "{{ lihas_become | default(no) }}"
 - name: "File /etc/apache2/site-snippets/ansible-post.conf"
   ansible.builtin.template:
     dest: "/etc/apache2/site-snippets/ansible-post-{{ domainitem }}.conf"
@@ -232,6 +233,7 @@
   with_list: "{{ domains_site_snippets.domains.keys() }}"
   loop_control:
     loop_var: domainitem
+  become: "{{ lihas_become | default(no) }}"
 - name: Collect external_redirect entries
   ansible.builtin.set_fact:
     external_redirect_domains: "{{ LIHASVARS.roles.external_redirect | default({}) }}"
@@ -267,6 +269,7 @@
     state: directory
   loop: "{{ local_pages.domains | flatten(levels=1) }}"
   when: local_pages is defined and local_pages['domains'][item]['documentroot_create'] | default(false)
+  become: "{{ lihas_become | default(no) }}"
 
 - name: "Apache local domains /etc/apache2/sites-available/local_pages.conf"
   ansible.builtin.template:
